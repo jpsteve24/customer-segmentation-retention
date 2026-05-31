@@ -58,19 +58,34 @@ Advanced customer analytics platform using:
 - Business Intelligence
 """)
 
-# ---------------------------------------------------
+# ------------------------------------------------
 # LOAD DATA
-# ---------------------------------------------------
+# ------------------------------------------------
+
 try:
     customer_df = pd.read_csv("outputs/customer_segments.csv")
     sales_df = pd.read_csv("outputs/sales_forecast.csv")
     rules_df = pd.read_csv("outputs/association_rules.csv")
 
+    # --------------------------------------------
+    # RENAME CUSTOMER CLUSTERS
+    # --------------------------------------------
+
+    cluster_names = {
+        0: "💎 VIP Customers",
+        1: "⚠️ Churn Risk Customers",
+        2: "🛍️ Regular Customers",
+        3: "❤️ Loyal Customers"
+    }
+
+    if "Cluster" in customer_df.columns:
+        customer_df["Customer Segment"] = (
+            customer_df["Cluster"].map(cluster_names)
+        )
 
 except FileNotFoundError as e:
     st.error(f"{e.filename} not found.")
     st.stop()
-
 # ---------------------------------------------------
 # SIDEBAR
 # ---------------------------------------------------
