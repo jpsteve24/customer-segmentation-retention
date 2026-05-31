@@ -318,9 +318,11 @@ elif section == "CLV Analysis":
 
         st.dataframe(top_customers)
 
+
 # =========================================================
 # SALES FORECAST
 # =========================================================
+
 elif section == "Sales Forecast":
 
     st.header("📈 Sales Forecasting Dashboard")
@@ -332,99 +334,87 @@ elif section == "Sales Forecast":
 
         numeric_cols = sales_df.select_dtypes(
             include=["int64", "float64"]
-        ).columns
+        ).columns.tolist()
 
-        # ------------------------------------------------
-        # KPI METRICS
-        # ------------------------------------------------
-        st.subheader("📊 Forecast KPIs")
+        if len(numeric_cols) > 0:
 
-        col1, col2, col3 = st.columns(3)
+            forecast_col = numeric_cols[0]
+            x_col = sales_df.columns[0]
 
-        with col1:
-            st.metric(
-                "💰 Total Forecast Sales",
-                f"${sales_df[numeric_cols[1]].sum():,.2f}"
+            # KPI Metrics
+            st.subheader("📊 Forecast KPIs")
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.metric(
+                    "💰 Total Forecast Sales",
+                    f"${sales_df[forecast_col].sum():,.2f}"
+                )
+
+            with col2:
+                st.metric(
+                    "📈 Average Forecast",
+                    f"${sales_df[forecast_col].mean():,.2f}"
+                )
+
+            with col3:
+                st.metric(
+                    "🚀 Peak Forecast",
+                    f"${sales_df[forecast_col].max():,.2f}"
+                )
+
+            # Forecast Trend
+            st.subheader("📈 Forecast Trend")
+
+            fig = px.line(
+                sales_df,
+                x=x_col,
+                y=forecast_col,
+                markers=True,
+                title="Sales Forecast Trend"
             )
 
-        with col2:
-            st.metric(
-                "📈 Average Forecast",
-                f"${sales_df[numeric_cols[1]].mean():,.2f}"
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Bar Chart
+            st.subheader("📊 Forecast Distribution")
+
+            fig = px.bar(
+                sales_df,
+                x=x_col,
+                y=forecast_col,
+                color=forecast_col,
+                title="Forecast Distribution"
             )
 
-        with col3:
-            st.metric(
-                "🚀 Peak Forecast",
-                f"${sales_df[numeric_cols[1]].max():,.2f}"
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Moving Average
+            st.subheader("📉 Moving Average Trend")
+
+            sales_df["Moving Average"] = (
+                sales_df[forecast_col]
+                .rolling(window=3)
+                .mean()
             )
 
-        # ------------------------------------------------
-        # FORECAST LINE CHART
-        # ------------------------------------------------
-        st.subheader("📈 Forecast Trend")
+            fig = px.line(
+                sales_df,
+                x=x_col,
+                y="Moving Average",
+                title="Moving Average Forecast"
+            )
 
-        fig = px.line(
-            sales_df,
-            x=numeric_cols[0],
-            y=numeric_cols[1],
-            markers=True,
-            title="Sales Forecast Trend"
-        )
+            st.plotly_chart(fig, use_container_width=True)
 
-        st.plotly_chart(fig, use_container_width=True)
-
-        # ------------------------------------------------
-        # BAR CHART
-        # ------------------------------------------------
-        st.subheader("📊 Forecast Distribution")
-
-        fig = px.bar(
-            sales_df,
-            x=numeric_cols[0],
-            y=numeric_cols[1],
-            color=numeric_cols[1],
-            title="Forecasted Sales Distribution"
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
-
-        # ------------------------------------------------
-        # MOVING AVERAGE
-        # ------------------------------------------------
-        st.subheader("📉 Moving Average Trend")
-
-        sales_df["Moving Average"] = (
-            sales_df[numeric_cols[1]]
-            .rolling(window=3)
-            .mean()
-        )
-
-        fig = px.line(
-            sales_df,
-            x=numeric_cols[0],
-            y="Moving Average",
-            title="Moving Average Sales Trend"
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
-
-        # ------------------------------------------------
-        # HISTOGRAM
-        # ------------------------------------------------
-        st.subheader("📦 Sales Frequency Distribution")
-
-        fig = px.histogram(
-            sales_df,
-            x=numeric_cols[1],
-            nbins=20,
-            title="Forecast Sales Distribution"
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("⚠️ No numeric columns found")
 
     else:
         st.warning("⚠️ sales_forecast.csv not found")
+
+
 
 
 # =========================================================
