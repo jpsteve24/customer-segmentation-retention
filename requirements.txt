@@ -5,5 +5,7 @@ matplotlib
 seaborn
 plotly
 scikit-learn
-prophet
+openpyxl
+scipy
+statsmodels
 mlxtend
