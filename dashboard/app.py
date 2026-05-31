@@ -87,7 +87,9 @@ section = st.sidebar.radio(
         "Overview",
         "Customer Segments",
         "Churn Analysis",
+        "CLV Analysis",
         "Sales Forecast",
+        "Customer Data",
         "Market Basket Analysis",
         "Business Recommendations"
     ]
@@ -276,6 +278,7 @@ elif section == "Sales Forecast":
 
         st.plotly_chart(fig, use_container_width=True)
 
+
 # ---------------------------------------------------
 # MARKET BASKET ANALYSIS
 # ---------------------------------------------------
@@ -284,6 +287,10 @@ elif section == "Market Basket Analysis":
     st.header("🛒 Market Basket Analysis")
 
     st.dataframe(rules_df.head())
+
+    available_cols = rules_df.columns.tolist()
+
+    st.write("Available Columns:", available_cols)
 
     if "lift" in rules_df.columns:
 
@@ -302,7 +309,11 @@ elif section == "Market Basket Analysis":
 
         st.plotly_chart(fig, use_container_width=True)
 
-    if "confidence" in rules_df.columns:
+    if (
+        "support" in rules_df.columns and
+        "confidence" in rules_df.columns and
+        "lift" in rules_df.columns
+    ):
 
         fig = px.scatter(
             rules_df,
@@ -313,6 +324,11 @@ elif section == "Market Basket Analysis":
         )
 
         st.plotly_chart(fig, use_container_width=True)
+
+    else:
+        st.warning(
+            "Scatter plot unavailable because support/confidence/lift columns are missing."
+        )
 
 # ---------------------------------------------------
 # BUSINESS RECOMMENDATIONS
@@ -345,7 +361,76 @@ elif section == "Business Recommendations":
     """)
 
 # ---------------------------------------------------
+# CUSTOMER DATA
+# ---------------------------------------------------
+elif section == "Customer Data":
+
+    st.header("🧾 Customer Dataset Explorer")
+
+    st.dataframe(customer_df)
+
+    st.subheader("Dataset Information")
+
+    info_df = pd.DataFrame({
+        "Column": customer_df.columns,
+        "Data Type": customer_df.dtypes.astype(str)
+    })
+
+    st.dataframe(info_df)
+
+    st.subheader("Missing Values")
+
+    missing_df = pd.DataFrame({
+        "Column": customer_df.columns,
+        "Missing Values": customer_df.isnull().sum()
+    })
+
+    st.dataframe(missing_df)
+
+# ---------------------------------------------------
+# CLV ANALYSIS
+# ---------------------------------------------------
+elif section == "CLV Analysis":
+
+    st.header("💰 Customer Lifetime Value Analysis")
+
+    if "Monetary" in customer_df.columns:
+
+        customer_df["CLV"] = (
+            customer_df["Monetary"] * 12
+        )
+
+        st.dataframe(
+            customer_df[["CustomerID", "Monetary", "CLV"]].head()
+        )
+
+        fig = px.histogram(
+            customer_df,
+            x="CLV",
+            nbins=30,
+            title="Customer Lifetime Value Distribution"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        top_customers = customer_df.sort_values(
+            by="CLV",
+            ascending=False
+        ).head(10)
+
+        fig = px.bar(
+            top_customers,
+            x="CustomerID",
+            y="CLV",
+            title="Top High Value Customers"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    else:
+        st.warning("Monetary column not found.")
+# ---------------------------------------------------
 # FOOTER
 # ---------------------------------------------------
 st.markdown("---")
-st.markdown("Built with ❤️ using Streamlit | Customer Intelligence Dashboard")
+st.markdown("Built By JP Steve Akash")
