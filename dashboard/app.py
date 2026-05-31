@@ -66,11 +66,6 @@ try:
     sales_df = pd.read_csv("outputs/sales_forecast.csv")
     rules_df = pd.read_csv("outputs/association_rules.csv")
 
-    # OPTIONAL CHURN DATASET
-    try:
-        churn_df = pd.read_csv("outputs/churn_analysis.csv")
-    except:
-        churn_df = None
 
 except FileNotFoundError as e:
     st.error(f"{e.filename} not found.")
@@ -212,49 +207,66 @@ elif section == "Customer Segments":
 # ---------------------------------------------------
 # CHURN ANALYSIS
 # ---------------------------------------------------
+# ---------------------------------------------------
+# CHURN ANALYSIS
+# ---------------------------------------------------
 elif section == "Churn Analysis":
 
     st.header("⚠️ Customer Churn Analysis")
 
-    if churn_df is not None:
+    st.markdown("""
+    Customers with:
+    - low purchase frequency
+    - low recency
+    - declining spending
+    are considered high churn risk.
+    """)
 
-        st.dataframe(churn_df.head())
+    st.dataframe(customer_df.head())
 
-        numeric_cols = churn_df.select_dtypes(
-            include=["int64", "float64"]
-        ).columns
+    if "Cluster" in customer_df.columns:
 
-        if "Churn" in churn_df.columns:
+        churn_counts = customer_df["Cluster"].value_counts()
 
-            churn_counts = churn_df["Churn"].value_counts()
+        fig = px.pie(
+            values=churn_counts.values,
+            names=churn_counts.index,
+            title="Customer Risk Segments"
+        )
 
-            fig = px.pie(
-                values=churn_counts.values,
-                names=churn_counts.index,
-                title="Customer Churn Distribution"
-            )
+        st.plotly_chart(fig, use_container_width=True)
 
-            st.plotly_chart(fig, use_container_width=True)
+    numeric_cols = customer_df.select_dtypes(
+        include=["int64", "float64"]
+    ).columns
 
-        if len(numeric_cols) > 0:
+    if len(numeric_cols) > 0:
 
-            selected_metric = st.selectbox(
-                "Select Churn Metric",
-                numeric_cols
-            )
+        selected_metric = st.selectbox(
+            "Select Churn Metric",
+            numeric_cols
+        )
 
-            fig = px.histogram(
-                churn_df,
-                x=selected_metric,
-                color="Churn" if "Churn" in churn_df.columns else None,
-                title=f"{selected_metric} Distribution"
-            )
+        fig = px.histogram(
+            customer_df,
+            x=selected_metric,
+            color="Cluster" if "Cluster" in customer_df.columns else None,
+            title=f"{selected_metric} Distribution"
+        )
 
-            st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True)
 
-    else:
-        st.warning("⚠️ churn_analysis.csv not found in outputs folder.")
+    if "Monetary" in customer_df.columns:
 
+        fig = px.box(
+            customer_df,
+            x="Cluster" if "Cluster" in customer_df.columns else None,
+            y="Monetary",
+            color="Cluster" if "Cluster" in customer_df.columns else None,
+            title="Customer Spending vs Churn Risk"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
 # ---------------------------------------------------
 # SALES FORECAST
 # ---------------------------------------------------
