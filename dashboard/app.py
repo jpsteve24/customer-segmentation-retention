@@ -222,9 +222,7 @@ elif section == "Customer Segments":
 # ---------------------------------------------------
 # CHURN ANALYSIS
 # ---------------------------------------------------
-# ---------------------------------------------------
-# CHURN ANALYSIS
-# ---------------------------------------------------
+
 elif section == "Churn Analysis":
 
     st.header("⚠️ Customer Churn Analysis")
@@ -336,26 +334,26 @@ elif section == "Market Basket Analysis":
 
         st.plotly_chart(fig, use_container_width=True)
 
-    if (
-        "support" in rules_df.columns and
-        "confidence" in rules_df.columns and
-        "lift" in rules_df.columns
-    ):
+    st.subheader("🛒 Market Basket Insights")
 
-        fig = px.scatter(
-            rules_df,
-            x="support",
-            y="confidence",
-            size="lift",
-            title="Association Rule Strength"
-        )
+st.dataframe(rules_df.head())
 
-        st.plotly_chart(fig, use_container_width=True)
+if all(col in rules_df.columns for col in ["support", "confidence", "lift"]):
 
-    else:
-        st.warning(
-            "Scatter plot unavailable because support/confidence/lift columns are missing."
-        )
+    fig = px.scatter(
+        rules_df,
+        x="support",
+        y="confidence",
+        size="lift",
+        color="lift",
+        hover_name="antecedents",
+        title="Association Rule Strength Analysis"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+else:
+    st.warning("Required columns not found in association_rules.csv")
 
 # ---------------------------------------------------
 # BUSINESS RECOMMENDATIONS
