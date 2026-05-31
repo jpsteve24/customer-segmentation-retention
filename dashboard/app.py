@@ -154,8 +154,8 @@ if section == "Overview":
 
         fig = px.histogram(
             customer_df,
-            x="Cluster",
-            color="Cluster",
+            x="Customer Segment",
+            color="Customer Segment",
             title="Customer Segment Distribution"
         )
 
@@ -168,7 +168,7 @@ if section == "Overview":
         fig = px.box(
             customer_df,
             y="Monetary",
-            color="Cluster" if "Cluster" in customer_df.columns else None,
+            color="Customer Segment" if "Cluster" in customer_df.columns else None,
             title="Customer Spending Analysis"
         )
 
@@ -196,9 +196,9 @@ elif section == "Customer Segments":
 
         fig = px.box(
             customer_df,
-            x="Cluster",
+            x="Customer Segment",
             y=selected_feature,
-            color="Cluster",
+            color="Customer Segment",
             title=f"{selected_feature} Across Customer Segments"
         )
 
@@ -265,7 +265,7 @@ elif section == "Churn Analysis":
         fig = px.histogram(
             customer_df,
             x=selected_metric,
-            color="Cluster" if "Cluster" in customer_df.columns else None,
+            color="Customer Segment" if "Cluster" in customer_df.columns else None,
             title=f"{selected_metric} Distribution"
         )
 
@@ -275,9 +275,9 @@ elif section == "Churn Analysis":
 
         fig = px.box(
             customer_df,
-            x="Cluster" if "Cluster" in customer_df.columns else None,
+            x="Customer Segment" if "Cluster" in customer_df.columns else None,
             y="Monetary",
-            color="Cluster" if "Cluster" in customer_df.columns else None,
+            color="Customer Segment" if "Cluster" in customer_df.columns else None,
             title="Customer Spending vs Churn Risk"
         )
 
