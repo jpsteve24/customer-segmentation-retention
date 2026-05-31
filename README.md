@@ -250,16 +250,4 @@ This project helped in gaining practical experience in:
 
 ---
 ---
-## Dashboard Screenshots
 
-### Overview Dashboard
-![Overview Dashboard](screenshots/overview.png)
-
-### Customer Segmentation
-![Customer Segments](screenshots/customer_segments.png)
-
-### CLV Analysis
-![CLV Analysis](screenshots/clv_analysis.png)
-
-### Forecasting Dashboard
-![Forecasting](screenshots/forecasting.png)
