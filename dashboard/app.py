@@ -1,17 +1,14 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
-import os
 
 # ---------------------------------------------------
 # PAGE CONFIG
 # ---------------------------------------------------
-
 st.set_page_config(
-    page_title="Customer Segmentation Dashboard",
+    page_title="Customer Segmentation & Retention Dashboard",
     page_icon="📊",
     layout="wide"
 )
@@ -19,363 +16,336 @@ st.set_page_config(
 # ---------------------------------------------------
 # CUSTOM CSS
 # ---------------------------------------------------
-
 st.markdown("""
 <style>
-
 .main {
     background-color: #0E1117;
 }
 
-h1, h2, h3, h4 {
+h1, h2, h3 {
     color: white;
 }
 
-[data-testid="metric-container"] {
+.metric-card {
     background-color: #1E1E1E;
     padding: 20px;
     border-radius: 12px;
-    border: 1px solid #333333;
+    text-align: center;
+    color: white;
 }
 
 .sidebar .sidebar-content {
-    background-color: #111111;
+    background-color: #111827;
 }
 
+.stButton>button {
+    border-radius: 10px;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------
+# TITLE
+# ---------------------------------------------------
+st.title("📊 E-Commerce Customer Segmentation & Retention Dashboard")
+
+st.markdown("""
+Advanced customer analytics platform using:
+- Customer Segmentation
+- Churn Analysis
+- Sales Forecasting
+- Market Basket Analysis
+- Business Intelligence
+""")
+
+# ---------------------------------------------------
 # LOAD DATA
 # ---------------------------------------------------
+try:
+    customer_df = pd.read_csv("outputs/customer_segments.csv")
+    sales_df = pd.read_csv("outputs/sales_forecast.csv")
+    rules_df = pd.read_csv("outputs/association_rules.csv")
 
-rfm_path = "../outputs/customer_segments.csv"
+    # OPTIONAL CHURN DATASET
+    try:
+        churn_df = pd.read_csv("outputs/churn_analysis.csv")
+    except:
+        churn_df = None
 
-if os.path.exists(rfm_path):
-    rfm = pd.read_csv(rfm_path)
-else:
-    st.error("customer_segments.csv not found.")
+except FileNotFoundError as e:
+    st.error(f"{e.filename} not found.")
     st.stop()
 
 # ---------------------------------------------------
 # SIDEBAR
 # ---------------------------------------------------
-
-st.sidebar.title("📌 Navigation")
+st.sidebar.title("📌 Dashboard Navigation")
 
 section = st.sidebar.radio(
-    "Go To",
+    "Select Section",
     [
         "Overview",
         "Customer Segments",
         "Churn Analysis",
-        "CLV Analysis",
-        "Sales Forecasting",
+        "Sales Forecast",
         "Market Basket Analysis",
-        "Customer Data",
         "Business Recommendations"
     ]
 )
 
-# Persona Filter
-persona_filter = st.sidebar.multiselect(
-    "Filter by Persona",
-    options=rfm["Persona"].unique(),
-    default=rfm["Persona"].unique()
-)
+# ---------------------------------------------------
+# PERSONA FILTER
+# ---------------------------------------------------
+if "Persona" in customer_df.columns:
 
-filtered_rfm = rfm[rfm["Persona"].isin(persona_filter)]
+    personas = customer_df["Persona"].unique()
+
+    selected_persona = st.sidebar.selectbox(
+        "🎯 Customer Persona",
+        ["All"] + list(personas)
+    )
+
+    if selected_persona != "All":
+        customer_df = customer_df[
+            customer_df["Persona"] == selected_persona
+        ]
 
 # ---------------------------------------------------
 # KPI METRICS
 # ---------------------------------------------------
+total_customers = len(customer_df)
 
-total_customers = filtered_rfm.shape[0]
-average_clv = filtered_rfm["CLV"].mean()
-high_risk = (filtered_rfm["ChurnRisk"] == "High Risk").sum()
-avg_frequency = filtered_rfm["Frequency"].mean()
+avg_spending = 0
+if "Monetary" in customer_df.columns:
+    avg_spending = round(customer_df["Monetary"].mean(), 2)
+
+segment_count = 0
+if "Cluster" in customer_df.columns:
+    segment_count = customer_df["Cluster"].nunique()
 
 # ---------------------------------------------------
 # OVERVIEW SECTION
 # ---------------------------------------------------
-
 if section == "Overview":
 
-    st.title("📈 Business Overview")
+    st.header("📈 Business Overview")
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
 
-    col1.metric("Total Customers", f"{total_customers:,}")
-    col2.metric("Average CLV", f"{average_clv:.2f}")
-    col3.metric("High Risk Customers", high_risk)
-    col4.metric("Avg Purchase Frequency", f"{avg_frequency:.2f}")
+    col1.metric("👥 Total Customers", total_customers)
+    col2.metric("💰 Avg Spending", avg_spending)
+    col3.metric("🧩 Customer Segments", segment_count)
 
-    st.markdown("---")
+    st.subheader("📊 Cluster Distribution")
 
-    # Persona Distribution
-    st.subheader("Customer Persona Distribution")
+    if "Cluster" in customer_df.columns:
 
-    fig1 = px.histogram(
-        filtered_rfm,
-        y="Persona",
-        color="Persona",
-        title="Distribution of Customer Personas"
-    )
+        fig = px.histogram(
+            customer_df,
+            x="Cluster",
+            color="Cluster",
+            title="Customer Segment Distribution"
+        )
 
-    st.plotly_chart(fig1, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True)
 
-    # Revenue by Persona
-    st.subheader("Revenue Contribution by Persona")
+    st.subheader("🔥 Spending Distribution")
 
-    revenue_data = (
-        filtered_rfm.groupby("Persona")["Monetary"]
-        .sum()
-        .reset_index()
-    )
+    if "Monetary" in customer_df.columns:
 
-    fig2 = px.bar(
-        revenue_data,
-        x="Persona",
-        y="Monetary",
-        color="Persona",
-        title="Revenue by Persona"
-    )
+        fig = px.box(
+            customer_df,
+            y="Monetary",
+            color="Cluster" if "Cluster" in customer_df.columns else None,
+            title="Customer Spending Analysis"
+        )
 
-    st.plotly_chart(fig2, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------------------------------
 # CUSTOMER SEGMENTS
 # ---------------------------------------------------
-
 elif section == "Customer Segments":
 
-    st.title("👥 Customer Segments")
+    st.header("👥 Customer Segmentation Analysis")
 
-    fig3 = px.scatter(
-        filtered_rfm,
-        x="Frequency",
-        y="Monetary",
-        color="Persona",
-        size="CLV",
-        hover_data=["CustomerID"],
-        title="Customer Segmentation Scatter Plot"
+    st.dataframe(customer_df.head())
+
+    numeric_cols = customer_df.select_dtypes(
+        include=["int64", "float64"]
+    ).columns
+
+    selected_feature = st.selectbox(
+        "Select Feature",
+        numeric_cols
     )
 
-    st.plotly_chart(fig3, use_container_width=True)
+    if "Cluster" in customer_df.columns:
+
+        fig = px.box(
+            customer_df,
+            x="Cluster",
+            y=selected_feature,
+            color="Cluster",
+            title=f"{selected_feature} Across Customer Segments"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("📌 Correlation Heatmap")
+
+    corr = customer_df[numeric_cols].corr()
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    sns.heatmap(
+        corr,
+        annot=True,
+        cmap="coolwarm",
+        ax=ax
+    )
+
+    st.pyplot(fig)
 
 # ---------------------------------------------------
 # CHURN ANALYSIS
 # ---------------------------------------------------
-
 elif section == "Churn Analysis":
 
-    st.title("⚠️ Churn Analysis")
+    st.header("⚠️ Customer Churn Analysis")
 
-    churn_counts = (
-        filtered_rfm["ChurnRisk"]
-        .value_counts()
-        .reset_index()
-    )
+    if churn_df is not None:
 
-    churn_counts.columns = ["ChurnRisk", "Count"]
+        st.dataframe(churn_df.head())
 
-    fig4 = px.pie(
-        churn_counts,
-        names="ChurnRisk",
-        values="Count",
-        title="Churn Risk Distribution"
-    )
+        numeric_cols = churn_df.select_dtypes(
+            include=["int64", "float64"]
+        ).columns
 
-    st.plotly_chart(fig4, use_container_width=True)
+        if "Churn" in churn_df.columns:
 
-# ---------------------------------------------------
-# CLV ANALYSIS
-# ---------------------------------------------------
+            churn_counts = churn_df["Churn"].value_counts()
 
-elif section == "CLV Analysis":
+            fig = px.pie(
+                values=churn_counts.values,
+                names=churn_counts.index,
+                title="Customer Churn Distribution"
+            )
 
-    st.title("💰 Customer Lifetime Value Analysis")
+            st.plotly_chart(fig, use_container_width=True)
 
-    fig5 = px.histogram(
-        filtered_rfm,
-        x="CLV",
-        nbins=40,
-        title="CLV Distribution"
-    )
+        if len(numeric_cols) > 0:
 
-    st.plotly_chart(fig5, use_container_width=True)
+            selected_metric = st.selectbox(
+                "Select Churn Metric",
+                numeric_cols
+            )
 
-# ---------------------------------------------------
-# SALES FORECASTING
-# ---------------------------------------------------
+            fig = px.histogram(
+                churn_df,
+                x=selected_metric,
+                color="Churn" if "Churn" in churn_df.columns else None,
+                title=f"{selected_metric} Distribution"
+            )
 
-elif section == "Sales Forecasting":
-
-    st.title("📉 Future Sales Forecast")
-
-    forecast_path = "../outputs/sales_forecast.csv"
-
-    if os.path.exists(forecast_path):
-
-        sales_forecast = pd.read_csv(forecast_path)
-
-        fig_forecast = px.line(
-            sales_forecast,
-            x="ds",
-            y="yhat",
-            title="Predicted Future Sales"
-        )
-
-        fig_forecast.update_layout(
-            xaxis_title="Date",
-            yaxis_title="Predicted Sales"
-        )
-
-        st.plotly_chart(fig_forecast, use_container_width=True)
-
-        st.subheader("Forecast Data Preview")
-        st.dataframe(sales_forecast.tail())
+            st.plotly_chart(fig, use_container_width=True)
 
     else:
-        st.warning("sales_forecast.csv not found.")
+        st.warning("⚠️ churn_analysis.csv not found in outputs folder.")
+
+# ---------------------------------------------------
+# SALES FORECAST
+# ---------------------------------------------------
+elif section == "Sales Forecast":
+
+    st.header("📉 Sales Forecasting")
+
+    st.dataframe(sales_df.head())
+
+    if len(sales_df.columns) >= 2:
+
+        x_col = sales_df.columns[0]
+        y_col = sales_df.columns[1]
+
+        fig = px.line(
+            sales_df,
+            x=x_col,
+            y=y_col,
+            title="Sales Forecast Trend"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------------------------------
 # MARKET BASKET ANALYSIS
 # ---------------------------------------------------
-
 elif section == "Market Basket Analysis":
 
-    st.title("🛒 Market Basket Analysis")
+    st.header("🛒 Market Basket Analysis")
 
-    rules_path = "../outputs/association_rules.csv"
+    st.dataframe(rules_df.head())
 
-    if os.path.exists(rules_path):
+    if "lift" in rules_df.columns:
 
-        rules = pd.read_csv(rules_path)
+        top_rules = rules_df.sort_values(
+            by="lift",
+            ascending=False
+        ).head(10)
 
-        # Check if rules dataframe is empty
-        if rules.empty:
+        fig = px.bar(
+            top_rules,
+            x="lift",
+            y=top_rules.index.astype(str),
+            orientation="h",
+            title="Top Product Associations"
+        )
 
-            st.warning(
-                "No association rules generated. "
-                "Dataset too small or support threshold too high."
-            )
+        st.plotly_chart(fig, use_container_width=True)
 
-        else:
+    if "confidence" in rules_df.columns:
 
-            st.subheader("Association Rules")
+        fig = px.scatter(
+            rules_df,
+            x="support",
+            y="confidence",
+            size="lift",
+            title="Association Rule Strength"
+        )
 
-            st.dataframe(rules.head(20))
-
-            # Convert columns safely
-            rules["support"] = pd.to_numeric(
-                rules["support"],
-                errors="coerce"
-            )
-
-            rules["confidence"] = pd.to_numeric(
-                rules["confidence"],
-                errors="coerce"
-            )
-
-            rules["lift"] = pd.to_numeric(
-                rules["lift"],
-                errors="coerce"
-            )
-
-            # Remove invalid rows
-            rules = rules.dropna(
-                subset=["support", "confidence", "lift"]
-            )
-
-            if rules.empty:
-
-                st.warning(
-                    "No valid rules available for visualization."
-                )
-
-            else:
-
-                fig_rules = px.scatter(
-                    rules,
-                    x="support",
-                    y="confidence",
-                    size="lift",
-                    color="lift",
-                    hover_data=["lift"],
-                    title="Association Rule Strength"
-                )
-
-                st.plotly_chart(
-                    fig_rules,
-                    use_container_width=True
-                )
-
-    else:
-        st.warning("association_rules.csv not found.")
-
-# ---------------------------------------------------
-# CUSTOMER DATA
-# ---------------------------------------------------
-
-elif section == "Customer Data":
-
-    st.title("📄 Customer Data Preview")
-
-    st.dataframe(filtered_rfm)
+        st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------------------------------
 # BUSINESS RECOMMENDATIONS
 # ---------------------------------------------------
-
 elif section == "Business Recommendations":
 
-    st.title("💡 Business Recommendations")
+    st.header("💡 Strategic Business Recommendations")
 
     st.markdown("""
-    ### Key Insights & Recommendations
+    ### 🎯 Customer Retention
+    - Focus on high-risk churn customers
+    - Introduce personalized loyalty programs
+    - Offer targeted discounts for inactive customers
 
-    #### 🎯 VIP Customers
-    - Offer premium loyalty rewards
-    - Provide early product access
-    - Use personalized marketing campaigns
+    ### 🛍️ Product Recommendations
+    - Use market basket analysis for cross-selling
+    - Recommend complementary products
+    - Create bundle offers
 
-    #### ⚠️ At-Risk Customers
-    - Launch retention campaigns
-    - Offer discount coupons
-    - Send personalized email reminders
+    ### 📈 Revenue Optimization
+    - Focus marketing on high-value customers
+    - Increase retention for premium customer segments
+    - Optimize pricing based on purchasing behavior
 
-    #### 🛒 Budget Buyers
-    - Promote bundle offers
-    - Target with seasonal discounts
-
-    #### 📈 Sales Forecasting
-    - Expected future revenue trend is increasing
-    - Plan inventory accordingly
-
-    #### 🧠 Market Basket Insights
-    - Frequently purchased products can be bundled
-    - Improve cross-selling strategy
+    ### 🚀 Future Improvements
+    - Real-time customer analytics
+    - AI recommendation engine
+    - Deep learning churn prediction
+    - Cloud deployment pipelines
     """)
 
 # ---------------------------------------------------
 # FOOTER
 # ---------------------------------------------------
-
 st.markdown("---")
-
-st.markdown("""
-### About This Project
-
-Built by JP Steve Akash
-
-#### Technologies Used:
-- Python
-- Streamlit
-- Pandas
-- Scikit-learn
-- Prophet
-- Plotly
-- Seaborn
-- Matplotlib
-""")
+st.markdown("Built with ❤️ using Streamlit | Customer Intelligence Dashboard")
