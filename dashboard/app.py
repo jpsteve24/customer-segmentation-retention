@@ -351,39 +351,52 @@ if all(col in rules_df.columns for col in ["support", "confidence", "lift"]):
     )
 
     st.plotly_chart(fig, use_container_width=True)
+if (
+    "support" in rules_df.columns and
+    "confidence" in rules_df.columns and
+    "lift" in rules_df.columns
+):
 
-else:
-    st.warning("Required columns not found in association_rules.csv")
+    fig = px.scatter(
+        rules_df,
+        x="support",
+        y="confidence",
+        size="lift",
+        color="lift",
+        hover_name="antecedents",
+        title="Association Rule Strength Analysis"
+    )
 
-# ---------------------------------------------------
+    st.plotly_chart(fig, use_container_width=True)
+
+# ------------------------------------------------
 # BUSINESS RECOMMENDATIONS
-# ---------------------------------------------------
+# ------------------------------------------------
 elif section == "Business Recommendations":
 
     st.header("💡 Strategic Business Recommendations")
 
     st.markdown("""
-    ### 🎯 Customer Retention
-    - Focus on high-risk churn customers
-    - Introduce personalized loyalty programs
-    - Offer targeted discounts for inactive customers
+### 🎯 Customer Retention
+- Focus on high-risk churn customers
+- Introduce personalized loyalty programs
+- Offer targeted discounts for inactive customers
 
-    ### 🛍️ Product Recommendations
-    - Use market basket analysis for cross-selling
-    - Recommend complementary products
-    - Create bundle offers
+### 🛍 Product Recommendations
+- Use market basket analysis for cross-selling
+- Recommend complementary products
+- Create bundle offers
 
-    ### 📈 Revenue Optimization
-    - Focus marketing on high-value customers
-    - Increase retention for premium customer segments
-    - Optimize pricing based on purchasing behavior
+### 📈 Revenue Optimization
+- Focus marketing on high-value customers
+- Improve retention for loyal customers
+- Increase customer lifetime value
 
-    ### 🚀 Future Improvements
-    - Real-time customer analytics
-    - AI recommendation engine
-    - Deep learning churn prediction
-    - Cloud deployment pipelines
-    """)
+### 🚀 Future Improvements
+- AI-powered recommendation system
+- Real-time customer tracking
+- Automated marketing analytics
+""")    
 
 # ---------------------------------------------------
 # CUSTOMER DATA
